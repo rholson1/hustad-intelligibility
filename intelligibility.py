@@ -30,6 +30,7 @@ def float_or_default(s, default=0):
         value = default
     return value
 
+
 class Word:
     """ Store the number of occurrences and correct responses to a word, grouped by utterance length
     """
@@ -141,7 +142,6 @@ def merge_iwpm_files(path):
     artic_files = [os.path.join(path, f) for f in all_files if pattern.search(f)]
     artic_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L in readfiles(artic_files) if '\t' in L}
 
-
     # WPM file has 5 cols: Sentence, TOCS_numb, UttDur, TotalWords, WPM
     # Syll file has 7 cols: Sentence, TOCS_numb, UttDur, TotalWords, WPM, TotalSylls, SyllsPerSecond
     # Artic file has 7 cols: Sentence, TOCS_numb, UttDur, TotalWords, WPM, Pauses>0.15s, CumPauseDur
@@ -181,7 +181,6 @@ def merge_iwpm_files(path):
             else:
                 new_line = line.strip() + '\n'
 
-
             # if key in sylls_dict:
             #     new_line = '\t'.join([line.strip(), sylls_dict.get(key, '')]) + '\n'
             # elif key in wpm_dict:
@@ -208,7 +207,7 @@ def splitvisit(childvisit):
     return [child, visit]
 
 
-def combined_iwpm_to_intelligibility(path, ask = True, exclude = True):
+def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
     """ Process the combined_*_IWPM.txt files located in the supplied path"""
 
     def process_group(group):
@@ -385,20 +384,20 @@ def is_sentence_file(filename):
         raise Exception('Stimulus filename has unexpected format: {}'.format(filename))
 
 
-def main(dir = "", exclude = "ask"):
+def main(directory="", exclude="ask"):
     # Suppress tkinter root window
     root = tkinter.Tk()
     root.withdraw()
 
     # Resolve directory to search. Use the ask user if blank directory used argument
-    if dir == "":
+    if directory == "":
         working_dir = fd.askdirectory(
             title='Select the directory containing listener files to be processed')
         if not working_dir:
             print("Selection canceled...")
             return
     else:
-        working_dir = os.path.abspath(dir)
+        working_dir = os.path.abspath(directory)
 
     print("Directory is {}".format(working_dir))
 
@@ -408,17 +407,16 @@ def main(dir = "", exclude = "ask"):
 
     missing_values = []  # list of prefixes of files that probably need to have missing values computed
 
-    ## Older version prompted for files. We search a directory instead.
-    #fnames = askopenfilenames(title='Select Listener File',
+    # Older version prompted for files. We search a directory instead.
+    # fnames = askopenfilenames(title='Select Listener File',
     #                    filetypes=[('Text Files','.txt'),
     #                                ('All Files','.*')])
-    #fnames = root.tk.splitlist(fnames)
+    # fnames = root.tk.splitlist(fnames)
 
     pattern = re.compile('(Control[_ ]File-|-Research_Responses|-Parent_Responses)')
     fnames = [os.path.join(working_dir, f) for f in os.listdir(working_dir) if pattern.search(f)]
 
     # Ask user about creation of overall IWPM files
-
 
     # Regroup filenames so that files with matching initials and visit number are concatenated and processed together.
     file_sets = group_filenames(fnames)
@@ -530,13 +528,11 @@ def main(dir = "", exclude = "ask"):
         sfname_sentence_sentence = prefix + '_intellxutterance_sentenceIWPMsummary.txt'
         sfname_sentence_word = prefix + '_intellxutterance_wordIWPMsummary.txt'
 
-
         word_fname = prefix + '_intellxword.txt'
 
         # Insert a column for %CWordA_SD after %CWordA
         CWordA_SD_col = header.index('%CWordA') + 1
         header.insert(CWordA_SD_col, '%CWordA_SD')
-
 
         #if aggregation_mode == 'Word Count':
         with open(sfname_wc, 'w') as sf:
@@ -695,7 +691,6 @@ def main(dir = "", exclude = "ask"):
         for k in word_dict:
             max_length = max(max_length, len(word_dict[k].utterance))
 
-
         with open(word_fname, 'w') as f:
             # write header line
             f.write('\t'.join(['Child', '# Listeners', 'Word',
@@ -774,19 +769,19 @@ if __name__ == '__main__':
 
     parser.add_argument(
         "-e", "--exclude",
-        dest = 'exclude',
-        action = 'store',
-        default = "ask",
-        choices = ['yes', 'no', 'ask'],
-        help = 'Whether to exclude sentences when there 4 or fewer ones of a given length. Defaults to asking the user.')
+        dest='exclude',
+        action='store',
+        default="ask",
+        choices=['yes', 'no', 'ask'],
+        help='Whether to exclude sentences when there 4 or fewer ones of a given length. Defaults to asking the user.')
 
     parser.add_argument(
         "-c", "--confirm",
-        dest = 'confirm',
-        action = 'store',
-        default = "yes",
-        choices = ['yes', 'no'],
-        help = 'Whether to require a keypress to end program. Defaults to yes (input is required).')
+        dest='confirm',
+        action='store',
+        default="yes",
+        choices=['yes', 'no'],
+        help='Whether to require a keypress to end program. Defaults to yes (input is required).')
 
     args = parser.parse_args()
     d = args.directory
