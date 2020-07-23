@@ -77,7 +77,7 @@ def parse_intel_control_filename(fname):
     path, basename = os.path.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
-        match = re.match('(.+)[_ -](Control[_ ]File-|Research_Responses|Parent_Responses)(.+)\.txt', basename)
+        match = re.match('(.+)[_ ](Control[_ ]File-|Research_Responses-|Parent_Responses-)(.*)\.txt', basename)
         base_prefix = match.group(1)
         cf_number = match.group(3)
     except:
@@ -90,7 +90,7 @@ def group_filenames(fnames):
     Only include filenames containing the substring 'Control File-' (that is, intelligibility control files).
     """
 
-    pattern = re.compile('(Control[_ ]File-|-Research_Responses|-Parent_Responses)')
+    pattern = re.compile('(Control[_ ]File-|Research_Responses-|Parent_Responses-)')
     f_list = [parse_intel_control_filename(f) for f in fnames if pattern.search(f)]
     prefixes = set([f['prefix'] for f in f_list])
     grouped_list = [{'prefix': p,
@@ -417,7 +417,7 @@ def main(directory="", exclude="ask"):
     #                                ('All Files','.*')])
     # fnames = root.tk.splitlist(fnames)
 
-    pattern = re.compile('(Control[_ ]File-|-Research_Responses|-Parent_Responses)')
+    pattern = re.compile('(Control[_ ]File-|Research_Responses-|Parent_Responses-)')
     fnames = [os.path.join(working_dir, f) for f in os.listdir(working_dir) if pattern.search(f)]
 
     pl_file = initialize_perceptual_learning(working_dir)
