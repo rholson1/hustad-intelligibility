@@ -77,10 +77,12 @@ def parse_intel_control_filename(fname):
     path, basename = os.path.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
-        base_prefix = re.match('(.+)[_ -](Control[_ ]File-|Research_Responses|Parent_Responses)', basename).group(1)
+        match = re.match('(.+)[_ -](Control[_ ]File-|Research_Responses|Parent_Responses)(.+)\.txt', basename)
+        base_prefix = match.group(1)
+        cf_number = match.group(3)
     except:
         raise Exception('Unexpected format for control file name: {}'.format(basename))
-    return {'prefix': os.path.join(path, base_prefix), 'filename': fname}
+    return {'prefix': os.path.join(path, base_prefix), 'filename': fname, 'cf_number': cf_number, 'visit': base_prefix}
 
 
 def group_filenames(fnames):
@@ -97,9 +99,11 @@ def group_filenames(fnames):
 
 
 def readfiles(filenames):
+    """Generator iterates through lines of supplied files successively, returning the line together with the name of
+     the source file"""
     for f in filenames:
         for line in open(f):
-            yield line
+            yield line, f
 
 
 def merge_iwpm_files(path):
@@ -129,18 +133,18 @@ def merge_iwpm_files(path):
     wpm_files = [os.path.join(path, f) for f in all_files if pattern.search(f)]
 
     # Create a WPM dictionary where the key is TOCS_numb (the second column of the WPM file
-    wpm_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L in readfiles(wpm_files) if '\t' in L}
+    wpm_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L, f in readfiles(wpm_files) if '\t' in L}
 
     # Also add in syllables per second if files are present
     pattern = re.compile('syllsPerSecond', flags=re.IGNORECASE)  # look for filenames containing syllsPerSecond
     sylls_files = [os.path.join(path, f) for f in all_files if pattern.search(f)]
     # Create a sylls dictionary where the key is TOCS_numb (the second column of the sylls file
-    sylls_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L in readfiles(sylls_files) if '\t' in L}
+    sylls_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L, f in readfiles(sylls_files) if '\t' in L}
 
     # Also add in articulation rate files, if present
     pattern = re.compile('articRate', flags=re.IGNORECASE)  # look for filenames containing articRate
     artic_files = [os.path.join(path, f) for f in all_files if pattern.search(f)]
-    artic_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L in readfiles(artic_files) if '\t' in L}
+    artic_dict = {clean_wpm_key(L.split('\t')[1]): L.strip().split('\t') for L, f in readfiles(artic_files) if '\t' in L}
 
     # WPM file has 5 cols: Sentence, TOCS_numb, UttDur, TotalWords, WPM
     # Syll file has 7 cols: Sentence, TOCS_numb, UttDur, TotalWords, WPM, TotalSylls, SyllsPerSecond
@@ -158,11 +162,11 @@ def merge_iwpm_files(path):
         of_sentence.write('\t'.join(header) + '\n')
         of_word.write('\t'.join(header) + '\n')
 
-        for line in readfiles(word_files):
+        for line, f in readfiles(word_files):
             of_word.write(line)
             of_all.write(line)
 
-        for line in readfiles(sentence_files):
+        for line, f in readfiles(sentence_files):
             lineparts = line.split('\t')
             if lineparts[8].strip() == 'SentenceFile':
                 key = 'TOCSnumb'
@@ -416,6 +420,8 @@ def main(directory="", exclude="ask"):
     pattern = re.compile('(Control[_ ]File-|-Research_Responses|-Parent_Responses)')
     fnames = [os.path.join(working_dir, f) for f in os.listdir(working_dir) if pattern.search(f)]
 
+    pl_file = initialize_perceptual_learning(working_dir)
+
     # Ask user about creation of overall IWPM files
 
     # Regroup filenames so that files with matching initials and visit number are concatenated and processed together.
@@ -424,7 +430,8 @@ def main(directory="", exclude="ask"):
     for file_set in file_sets:
         prefix = file_set['prefix']  # Path and file prefix used for output files
         # Store data in parts:
-        Listener = []
+        ShortListener = []  # just the listener initials
+        Listener = []  # listener augmented by control file number
         Repeat = []
         Data = []
         SWord = []
@@ -432,18 +439,23 @@ def main(directory="", exclude="ask"):
         PSentence = []  # phonetic sentences
         SentenceFile = []  # sentence file names
         SentenceFileSentence = {}
+        Correct = []  # is response completely correct?
+        SourceFile = []
+        Response = []  # typed response (not phonetic)
 
         word_dict = {}
 
         rfname = prefix + '_reliability.txt'
-        print(os.path.basename(prefix), flush = True)
+        print(os.path.basename(prefix), flush=True)
 
         # Files may have an extra 4 columns with demographic information
         offset = 0
 
         with open(rfname, 'w') as rf:
             #with open(fname, 'r') as f:
-                for line in readfiles(file_set['filenames']):
+                for line, sourcefile in readfiles(file_set['filenames']):
+                    fileparts = parse_intel_control_filename(sourcefile)
+                    cf_number = fileparts['cf_number']
                     lineparts = line.split('\t')
                     if len(lineparts) > 1:
                         if lineparts[0].isnumeric():
@@ -461,7 +473,8 @@ def main(directory="", exclude="ask"):
                                 continue
 
                             # This is a data line
-                            Listener.append(lineparts[2])
+                            ShortListener.append(lineparts[2])
+                            Listener.append('{}-{}'.format(lineparts[2], cf_number))
                             Repeat.append(lineparts[6+offset])
                             Data.append([lineparts[10+offset]] + lineparts[15+offset:])
                             SWord.append(lineparts[15+offset])
@@ -483,6 +496,10 @@ def main(directory="", exclude="ask"):
                                 response_parts = lineparts[9 + offset].lower().split()
 
                             correct = sequence_match(psentence_parts, response_parts)  # Score response
+                            Correct.append(all(correct))
+
+                            SourceFile.append(sourcefile)
+                            Response.append(lineparts[9 + offset])
 
                             for idx, word in enumerate(sentence_parts):
                                 pword = psentence_parts[idx]  # phonetic word
@@ -508,10 +525,18 @@ def main(directory="", exclude="ask"):
 
         Listener = np.array(Listener)
         Listeners = np.unique(Listener)
+        ShortListener = np.array(ShortListener)
+        ShortListeners = np.unique(ShortListener)
+        if len(Listeners) > len(ShortListeners):
+            print('Warning: Duplicate listener initials. {}'.format(' '.join(Listeners)))
+
         Sentence = np.array(Sentence)
         Sentences = np.unique(Sentence)
         SentenceFile = np.array(SentenceFile)
         SentenceFiles = np.unique(SentenceFile)
+        Correct = np.array(Correct)
+        SourceFile = np.array(SourceFile)
+        Response = np.array(Response)
 
         PSentence = np.array(PSentence)
         Repeat = np.fromiter(Repeat,'int')
@@ -529,6 +554,9 @@ def main(directory="", exclude="ask"):
         sfname_sentence_word = prefix + '_intellxutterance_wordIWPMsummary.txt'
 
         word_fname = prefix + '_intellxword.txt'
+
+        # Generate perceptual learning output file
+        perceptual_learning(pl_file, header[3:], Sentence, SentenceFile, Correct, Repeat, Data, SourceFile, Response)
 
         # Insert a column for %CWordA_SD after %CWordA
         CWordA_SD_col = header.index('%CWordA') + 1
@@ -731,28 +759,100 @@ def main(directory="", exclude="ask"):
         showinfo('Check input', 'Compute missing values for: {}'.format(', '.join(set(missing_values))))
 
 
-def perceptual_learning():
-    """Write perceptual learning file
+def initialize_perceptual_learning(working_dir):
+    """Initialize the output file used for the combined perceptual learning file (across visits/listeners)"""
+    fname = os.path.join(working_dir, 'combined_perceptual_listening.txt')
+    with open(fname, 'w') as f:
+        f.write('\t'.join(['Visit'] + ['L{} {}'.format(L, s) for L in (1, 2) for s in ('First task', 'CF Number', 'WTOCS Count',
+                           'WTOCS 1/3', 'WTOCS 2/3', 'WTOCS 3/3', 'TPC 1/3', 'TPC 2/3', 'TPC 3/3')]
+                          ) + '\n')
 
-    Intelligibility of WTOCS in chunks
-    WTOCS 1-12 % correct
-    WTOCS 13-24 % correct
-    WTOCS 25-36 % correct
+    return fname
 
-    WTOCS or STOCS first
 
-    Accuracy of repeated items with separation
-    word, correct 1, correct 2, separation
-
-    ---
-    also, for single words:
-    - correct/incorrect
-    - # vowels correct / total vowel
-    - # consonants correct / total consonants
-    - articulation rating (source TBD)
-
+def perceptual_learning(pl_filename, header, sentence, filenames, correct, repeat, data, sourcefile, response):
+    """Write perceptual learning files
+    One file per listener, plus one summary file that contains WTOCS intelligibility in thirds and TPC in thirds
+    TPC == total phonemes correct, calculated as sum(MPhoA)/sum(SPho) over the set of interest
     """
-    pass
+
+    # Exclude 'a dress' and 'dee' from consideration
+    word_filter = np.array([s.lower() not in ('a dress', 'dee') for s in sentence])
+    last_prefix = ''
+    # group output by listener (aka by source filename)
+    sources = np.unique(sourcefile)
+    for source in sources:
+        working_set = np.logical_and(sourcefile == source, word_filter)
+
+        parts = parse_intel_control_filename(source)
+        listener_filename = parts['prefix'] + '_perceptual_learning-' + parts['cf_number'] + '.txt'
+
+        wtocs = np.array([not is_sentence_file(f) for f in filenames[working_set]])
+        wtocs_first = wtocs[0]
+
+        # Exclude repeats
+        to_use = np.logical_and(wtocs, np.isin(repeat[working_set], (0, 1)))
+        wtocs_count = sum(to_use)
+        used_correct = correct[working_set][to_use]
+
+        # extract variables needed to compute TPC (total phonemes correct)
+        MPhoA = data[working_set, header.index('MPhoA')]
+        SPho = data[working_set, header.index('SPho')]
+        D = {s: data[working_set, header.index(s)] for s in ('SVwl', 'MVwl', 'MVwlA', 'SCon', 'MCon', 'MConA')}
+
+        # compute intelligibility of wtocs in thirds
+        limits = [int(np.ceil(wtocs_count * x / 3.)) for x in range(4)]
+        chunk_size = [len(used_correct[limits[i]:limits[i + 1]]) for i in range(3)]
+        chunk_correct = [sum(used_correct[limits[i]:limits[i + 1]]) for i in range(3)]
+        chunk_mphoa = [sum(MPhoA[limits[i]:limits[i + 1]]) for i in range(3)]
+        chunk_spho = [sum(SPho[limits[i]:limits[i + 1]]) for i in range(3)]
+
+        # Accuracy of repeated items with separation
+        repeat_accuracy = {}
+        for i, (word, c, r) in enumerate(zip(sentence[working_set][wtocs],
+                                             correct[working_set][wtocs],
+                                             repeat[working_set][wtocs])):
+            if r == 1:  # first repeat
+                repeat_accuracy[word] = {'word': word, 'correct 1': c, 'pos 1': i}
+            elif r == 2:  # second repeat
+                repeat_accuracy[word].update({'correct 2': c, 'pos 2': i})
+
+        # write to listener file and combined file
+        with open(listener_filename, 'w') as lf, open(pl_filename, 'a') as combined_f:
+            lf.write('{}tocs first\n'.format('w' if wtocs_first else 's'))
+            lf.write('wtocs count\t{}\n'.format(wtocs_count))
+
+            for i in range(3):
+                lf.write('wtocs {}/3\t{:.2f}\n'.format(i+1, chunk_correct[i]/chunk_size[i]))
+
+            for i in range(3):
+                lf.write('TPC {}/3\t{:.2f}\n'.format(i + 1, chunk_mphoa[i] / chunk_spho[i]))
+
+            if parts['prefix'] != last_prefix:
+                combined_f.write('\n{}'.format(parts['visit']))
+                last_prefix = parts['prefix']
+            combined_f.write('\t' + '\t'.join(['{}tocs'.format('w' if wtocs_first else 's'), parts['cf_number'], str(wtocs_count)] +
+                                       ['{:.2f}'.format(chunk_correct[i] / chunk_size[i]) for i in range(3)] +
+                                       ['{:.2f}'.format(chunk_mphoa[i] / chunk_spho[i]) for i in range(3)]
+                                       ))
+
+            lf.write('\t'.join(['Word', 'Correct 1', 'Correct 2', 'Separation']) + '\n')
+            for k, v in repeat_accuracy.items():
+                lf.write('\t'.join([str(s) for s in [v['word'], v['correct 1'], v['correct 2'], v['pos 2'] - v['pos 1']]]) + '\n')
+
+            # Single word accuracy (vowels, consonants), articulation (from ! file)
+            lf.write('\t'.join(['Word', 'Response', 'Correct', 'TPC', 'SVwl', 'MVwl', 'MVwlA', 'SCon', 'MCon', 'MConA']) + '\n')
+
+            for i in range(len(wtocs)):
+                if wtocs[i]:
+                    lf.write('\t'.join([
+                        str(s) for s in [
+                            sentence[working_set][i],
+                            response[working_set][i],
+                            correct[working_set][i],
+                            '{:.2f}'.format(MPhoA[i] / SPho[i])
+                        ]
+                    ] + ['{:.2f}'.format(D[s][i]) for s in ('SVwl', 'MVwl', 'MVwlA', 'SCon', 'MCon', 'MConA')]) + '\n')
 
 
 if __name__ == '__main__':
