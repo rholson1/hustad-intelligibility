@@ -689,11 +689,16 @@ def main(directory="", exclude="ask"):
                                       for idx, h in enumerate(header[5:])]
                             except IndexError:
                                 print(Listeners)
-                                print(blockdata)
-                                print(enumerate(header[5:]))
-                                print(header[5:])
+                                # print(blockdata)
+                                print('Length of blockdata elements: {}'.format([len(zz) for zz in blockdata]))
+                                # print(list(enumerate(header[5:])))
 
-                                raise Exception('Problem computing statistics for sentence "{}" in {}'.format(s, os.path.basename(prefix)))
+                                print('Problem computing statistics for sentence "{}" in {}'.format(s, os.path.basename(prefix)))
+
+                                #raise Exception('Problem computing statistics for sentence "{}" in {}'.format(s, os.path.basename(prefix)))
+                            if blockdata.ndim == 1:
+                                print('Skipping "{}"'.format(s))
+                                continue
 
                             bd[CWordA_SD_col - 3] = np.std(blockdata[:, CWordA_SD_col - 4])
 
@@ -810,6 +815,10 @@ def ca_from_visit(visit):
     return 12 * y + m
 
 
+def constant_factory(value):
+    return lambda: value
+
+
 def perceptual_learning(pl_filename, header, sentence, filenames, correct, repeat, data, sourcefile, response, articulation):
     """Write perceptual learning files
     One file per listener, plus one summary file that contains WTOCS intelligibility in thirds and TPC in thirds
@@ -848,7 +857,7 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
 
         # get articulation for wtocs (all wtocs for this source)
         art = articulation.get(file_to_key(source), None)
-        art = np.array([float(a) for a in art['articulation']]) if art else None
+        art = np.array([float(a) for a in art['articulation']]) if art and art['articulation'] else None
         art_filter = single_word_set[listener_all_wtocs]
         art_value = art[art_filter] if art is not None else None
 
@@ -929,6 +938,7 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
                 combined_f.write('\t{}'.format(ca_from_visit(parts['visit'])))
 
                 last_prefix = parts['prefix']
+
             combined_f.write('\t' + '\t'.join(['{}tocs'.format('w' if wtocs_first else 's'), parts['cf_number'], parts['listener_type'], str(wtocs_count)] +
                                        ['{:.2f}'.format(chunk_correct[i] / chunk_size[i]) for i in range(3)] +
                                        ['{:.2f}'.format(chunk_mphoa[i] / chunk_spho[i]) for i in range(3)] +
@@ -941,20 +951,20 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
                                         '{:.2f}'.format(sum(D['MConA']) / sum(D['SCon']))] +  # WTOCS TCC
                                        ['{:.2f}'.format(v) for v in [
                                            sum(sss_correct) / stocs_count,  # STOCS intelligibility
-                                           sum(correct[sentence_repeat_set[1]]) / sum(sentence_repeat_set[1]),  # STOCS Reliability 1 Intell
-                                           sum(correct[sentence_repeat_set[2]]) / sum(sentence_repeat_set[2]),  # STOCS Reliability 2 Intell
-                                           sum(sentence_reliability[1]['MPhoA']) / sum(sentence_reliability[1]['SPho']),  # STOCS Reliability 1 TPC
-                                           sum(sentence_reliability[2]['MPhoA']) / sum(sentence_reliability[2]['SPho']),  # STOCS Reliability 2 TPC
-                                           sum(s_data[:, col['MPhoA']]) / sum(s_data[:, col['SPho']]),  # STOCS TPC
-                                           sum(s_data[:, col['MVwlA']]) / sum(s_data[:, col['SVwl']]),  # STOCS TVC
-                                           sum(s_data[:, col['MConA']]) / sum(s_data[:, col['SCon']])  # STOCS TCC
+                                           sum(correct[sentence_repeat_set[1]]) / sum(sentence_repeat_set[1]) if sum(sentence_repeat_set[1]) else -1,  # STOCS Reliability 1 Intell
+                                           sum(correct[sentence_repeat_set[2]]) / sum(sentence_repeat_set[2]) if sum(sentence_repeat_set[2]) else -1,  # STOCS Reliability 2 Intell
+                                           sum(sentence_reliability[1]['MPhoA']) / sum(sentence_reliability[1]['SPho']) if sum(sentence_reliability[1]['SPho']) else -1,  # STOCS Reliability 1 TPC
+                                           sum(sentence_reliability[2]['MPhoA']) / sum(sentence_reliability[2]['SPho']) if sum(sentence_reliability[2]['SPho']) else -1,  # STOCS Reliability 2 TPC
+                                           sum(s_data[:, col['MPhoA']]) / sum(s_data[:, col['SPho']]) if sum(s_data[:, col['SPho']]) else -1,  # STOCS TPC
+                                           sum(s_data[:, col['MVwlA']]) / sum(s_data[:, col['SVwl']]) if sum(s_data[:, col['SVwl']]) else -1,  # STOCS TVC
+                                           sum(s_data[:, col['MConA']]) / sum(s_data[:, col['SCon']]) if sum(s_data[:, col['SCon']]) else -1  # STOCS TCC
                                        ]]
                                        ))
 
             # WTOCS repeat accuracy with separation
             lf.write('\t'.join(['Word', 'Correct 1', 'Correct 2', 'Separation']) + '\n')
             for k, v in repeat_accuracy.items():
-                lf.write('\t'.join([str(s) for s in [v['word'], v['correct 1'], v['correct 2'], v['pos 2'] - v['pos 1']]]) + '\n')
+                lf.write('\t'.join([str(s) for s in [v['word'], v['correct 1'], v.get('correct 2', 'missing'), v.get('pos 2', 0) - v['pos 1']]]) + '\n')
 
             lf.write('\t'.join(['Repeat Total', 'Repeat 1', 'Repeat 2']) + '\n')
             lf.write('\t'.join(
@@ -965,13 +975,13 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
             # STOCS repeat accuracy with separation
             lf.write('\t'.join(['Sentence', 'Correct 1', 'Correct 2', 'Separation']) + '\n')
             for k, v in s_repeat_accuracy.items():
-                lf.write('\t'.join([str(s) for s in [v['word'], v['correct 1'], v['correct 2'], v['pos 2'] - v['pos 1']]]) + '\n')
+                lf.write('\t'.join([str(s) for s in [v['word'], v['correct 1'], v.get('correct 2', 'missing'), v.get('pos 2', 0) - v['pos 1']]]) + '\n')
 
             lf.write('\t'.join(['Repeat Total', 'Repeat 1', 'Repeat 2']) + '\n')
             lf.write('\t'.join(
-                ['Intelligibility'] + ['{:.2f}'.format(s_repeat_agg[r]['correct'] / s_repeat_agg[r]['count']) for r in (1, 2)]) + '\n')
+                ['Intelligibility'] + ['{:.2f}'.format(s_repeat_agg[r]['correct'] / s_repeat_agg[r]['count'] if s_repeat_agg[r]['count'] else -1) for r in (1, 2)]) + '\n')
             lf.write('\t'.join(
-                ['TPC'] + ['{:.2f}'.format(s_repeat_agg[r]['mphoa'] / s_repeat_agg[r]['spho']) for r in (1, 2)]) + '\n')
+                ['TPC'] + ['{:.2f}'.format(s_repeat_agg[r]['mphoa'] / s_repeat_agg[r]['spho'] if s_repeat_agg[r]['spho'] else -1) for r in (1, 2)]) + '\n')
 
             # Single word accuracy (vowels, consonants), articulation (from ! file)
             lf.write('\t'.join(['Word', 'Response', 'Correct', 'TPC', 'SVwl', 'MVwl', 'MVwlA', 'SCon', 'MCon', 'MConA', 'Articulation']) + '\n')
