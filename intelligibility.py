@@ -857,12 +857,13 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
 
         # get articulation for wtocs (all wtocs for this source)
         art = articulation.get(file_to_key(source), None)
-        art_stim = art['stimulus'] if art and art['stimulus'] else None
+        art_stim = [os.path.basename(s) for s in art['stimulus']] if art and art['stimulus'] else None
         art = np.array([float(a) for a in art['articulation']]) if art and art['articulation'] else None
 
         # Want to exclude articulation values from training items (in articulation but not in listener response files)
-        art_stim_filter = np.array([a in filenames[listener_all_wtocs] for a in art_stim])
-        art = art[art_stim_filter]
+        lrf_filenames = [os.path.basename(s) for s in filenames[listener_all_wtocs]]
+        art_stim_filter = np.array([a in lrf_filenames for a in art_stim]) if art_stim else None
+        art = art[art_stim_filter] if art_stim_filter is not None else None
 
         art_filter = single_word_set[listener_all_wtocs]
         art_value = art[art_filter] if art is not None else None
