@@ -100,6 +100,12 @@ def file_to_key(fname):
         cf_number = match.group(3)
     except:
         raise Exception('Unexpected format for file name: {}'.format(basename))
+
+    # Check to see if base_prefix ends with a visit number: vNN
+    # If not, assume visit 1 and append v01
+    if re.search('v\d\d$', base_prefix) is None:
+        base_prefix = base_prefix + 'v01'
+
     return '{}-{}'.format(base_prefix, cf_number)
 
 
