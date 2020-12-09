@@ -831,8 +831,8 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
     TPC == total phonemes correct, calculated as sum(MPhoA)/sum(SPho) over the set of interest
     """
 
-    # Exclude 'a dress' and 'dee' from consideration
-    word_filter = np.array([s.lower() not in ('a dress', 'dee') for s in sentence])  # always, for wtocs
+    # Exclude 'a dress' from consideration
+    word_filter = np.array([s.lower() not in ('a dress',) for s in sentence])  # always, for wtocs
     first_utterance = np.isin(repeat, (0, 1))  # most of the time, except for comparison of repeats
 
     all_stocs = np.array([is_sentence_file(f) for f in filenames])
@@ -848,7 +848,7 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
         listener_all_wtocs = np.logical_and(listener_set, all_wtocs)  # select the wtocs rows in art
         listener_all_stocs = np.logical_and(listener_set, all_stocs)
 
-        # single_word_set = first utterances of wtocs by this listener, excluding 'a dress', 'dee'
+        # single_word_set = first utterances of wtocs by this listener, excluding 'a dress'
         repeat_set = np.logical_and(listener_all_wtocs, word_filter)  # repeat in (0, 1, 2)
         single_word_set = np.logical_and(repeat_set, first_utterance)  # repeat in (0, 1)
 
@@ -956,8 +956,8 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
                                        ['{:.2f}'.format(chunk_correct[i] / chunk_size[i]) for i in range(3)] +
                                        ['{:.2f}'.format(chunk_mphoa[i] / chunk_spho[i]) for i in range(3)] +
                                        ['{:.2f}'.format(sum(chunk_correct) / sum(chunk_size))] +  # WTOCS overall intell
-                                       ['{:.2f}'.format(repeat_agg[r]['correct'] / repeat_agg[r]['count']) for r in (1, 2)] +  # Reliability intell
-                                       ['{:.2f}'.format(repeat_agg[r]['mphoa'] / repeat_agg[r]['spho']) for r in (1, 2)] +  # Reliability TPC
+                                       ['{:.2f}'.format(repeat_agg[r]['correct'] / repeat_agg[r]['count']) if repeat_agg[r]['count'] else '-1' for r in (1, 2)]  +  # Reliability intell
+                                       ['{:.2f}'.format(repeat_agg[r]['mphoa'] / repeat_agg[r]['spho']) if repeat_agg[r]['spho'] else '-1' for r in (1, 2)] +  # Reliability TPC
                                        ['{:.2f}'.format(np.mean(art_value) if art_value is not None else 0)] + # articulation (aka precision)
                                        ['{:.2f}'.format(sum(chunk_mphoa) / sum(chunk_spho))] +  # WTOCS TPC
                                        ['{:.2f}'.format(sum(D['MVwlA']) / sum(D['SVwl'])),  # WTOCS TVC
@@ -981,9 +981,9 @@ def perceptual_learning(pl_filename, header, sentence, filenames, correct, repea
 
             lf.write('\t'.join(['Repeat Total', 'Repeat 1', 'Repeat 2']) + '\n')
             lf.write('\t'.join(
-                ['Intelligibility'] + ['{:.2f}'.format(repeat_agg[r]['correct'] / repeat_agg[r]['count']) for r in (1, 2)]) + '\n')
+                ['Intelligibility'] + ['{:.2f}'.format(repeat_agg[r]['correct'] / repeat_agg[r]['count']) if repeat_agg[r]['count'] else '-1' for r in (1, 2)]) + '\n')
             lf.write('\t'.join(
-                ['TPC'] + ['{:.2f}'.format(repeat_agg[r]['mphoa'] / repeat_agg[r]['spho']) for r in (1, 2)]) + '\n')
+                ['TPC'] + ['{:.2f}'.format(repeat_agg[r]['mphoa'] / repeat_agg[r]['spho']) if repeat_agg[r]['spho'] else '-1' for r in (1, 2)]) + '\n')
 
             # STOCS repeat accuracy with separation
             lf.write('\t'.join(['Sentence', 'Correct 1', 'Correct 2', 'Separation']) + '\n')
