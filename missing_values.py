@@ -682,15 +682,15 @@ class ShowTellLine:
             else:
                 r_consonants += p
 
-        s_phonemes_init = ''.join([w[0] for w in s_pwords])
-        r_phonemes_init = ''.join([w[0] for w in r_pwords])
-        s_phonemes_fin = ''.join([w[-1] for w in s_pwords])
-        r_phonemes_fin = ''.join([w[-1] for w in r_pwords])
+        s_phonemes_init = ''.join([w[:1] for w in s_pwords])
+        r_phonemes_init = ''.join([w[:1] for w in r_pwords])
+        s_phonemes_fin = ''.join([w[-1:] for w in s_pwords])
+        r_phonemes_fin = ''.join([w[-1:] for w in r_pwords])
 
-        s_graph_init = ''.join([w[0] for w in swords])
-        r_graph_init = ''.join([w[0] for w in rwords])
-        s_graph_fin = ''.join([w[-1] for w in swords])
-        r_graph_fin = ''.join([w[-1] for w in rwords])
+        s_graph_init = ''.join([w[:1] for w in swords])
+        r_graph_init = ''.join([w[:1] for w in rwords])
+        s_graph_fin = ''.join([w[-1:] for w in swords])
+        r_graph_fin = ''.join([w[-1:] for w in rwords])
 
         matcher = SequenceMatcher(autojunk=False)
 
