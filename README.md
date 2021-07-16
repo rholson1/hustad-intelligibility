@@ -17,4 +17,5 @@ evaluate some of the measures (e.g., the number of matching words).  *missing_va
 
 intelligibility.py
 ------------------
-*intelligibility.py* computes various measures of intelligibility from statistic files.
+*intelligibility.py* computes various measures of intelligibility from statistic files.  If phase information is
+provided, as from the Listener Training Task, data will be processed for each phase separately.
