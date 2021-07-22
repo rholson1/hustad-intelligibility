@@ -304,7 +304,7 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
         data = []
         for line in open(filename_in):
             lineparts = line.rstrip().split('\t')
-            if lineparts[:1] == ['Child']:
+            if lineparts[:1] == ['Child'] and header == []:
                 header = lineparts[:1] + ['ChildID', 'VisitID'] + lineparts[1:]
             elif lineparts[:1] == ['Phase']:
                 phaseheader = lineparts[:1] + ['', ''] + lineparts[1:]
@@ -336,7 +336,7 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
                     line[prefix],
                     line[phasecols[P]],
                     line[postfix:],
-                    np.zeros(5 - (len(line) - postfix))  # pad with zeros to avoid index errors
+                    np.zeros(5)  # pad with zeros to avoid index errors
                 )))
 
         group_calcs = defaultdict(dict)
@@ -408,9 +408,9 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
             # process data by group and store
             for k, g in groupby(pdata[P], cvs_key):
                 group_calcs[k][P] = process_group(g)
-            for k, g in groupby(data, cv_key):
+            for k, g in groupby(pdata[P], cv_key):
                 group_calcs27[k][P] = process_group([line for line in g if float_or_default(line[sword_col]) > 1])
-            for k, g in groupby(data, cv_key):
+            for k, g in groupby(pdata[P], cv_key):
                 group_calcs17[k][P] = process_group(g)
 
 
@@ -436,20 +436,20 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
             if len(phases) > 1:
                 f_out.write('\t'.join(phase_header) + '\n')
 
-            for k in group_calcs.keys():
+            for k in sorted(group_calcs.keys()):
                 if k.split('-')[2] != '0.0':
                     f_out.write('\t'.join(
                         k.split('-') +
                         list(chain(*zip(*[[str(group_calcs[k].get(P, groupdata_default)[s]) for s in calc_keys] for P in phases])))
                     ) + '\n')
 
-            for k in group_calcs27.keys():
+            for k in sorted(group_calcs27.keys()):
                 f_out.write('\t'.join(
                     k.split('-') + ['s2-s7'] +
                     list(chain(*zip(*[[str(group_calcs27[k].get(P, groupdata_default)[s]) for s in calc_keys] for P in phases])))
                 ) + '\n')
 
-            for k in group_calcs17.keys():
+            for k in sorted(group_calcs17.keys()):
                 f_out.write('\t'.join(
                     k.split('-') + ['s1-s7'] +
                     list(chain(*zip(*[[str(group_calcs17[k].get(P, groupdata_default)[s]) for s in calc_keys] for P in phases])))
