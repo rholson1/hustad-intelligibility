@@ -378,7 +378,7 @@ class PhoneDict:
                 val_ph = ''.join([self.get_ph(p) for p in val.split('-')])
                 self.dictfix[key.upper()] = val_ph
 
-        self.wordoffset = struct.unpack('l' * self.WORDOFFSETSIZE, self.data[:self.LONGSIZE * self.WORDOFFSETSIZE])
+        self.wordoffset = struct.unpack('<' + 'l' * self.WORDOFFSETSIZE, self.data[:self.LONGSIZE * self.WORDOFFSETSIZE])
         self.rules = self.read_and_format_rules()
 
         self.sector_chars_left = 0
