@@ -387,10 +387,10 @@ class PhoneDict:
     def read_and_format_rules(self):
         # Rules are provided as pattern/phoneme pairs.
         rules_size_address = self.LONGSIZE * (self.WORDOFFSETSIZE + 1)
-        rules_size = struct.unpack('l', self.data[rules_size_address:rules_size_address + self.LONGSIZE])[0]
+        rules_size = struct.unpack('<' + 'l', self.data[rules_size_address:rules_size_address + self.LONGSIZE])[0]
         rules_address = rules_size_address + self.LONGSIZE
         # Read rules as bytes
-        rules = struct.unpack('{}s'.format(rules_size), self.data[rules_address:rules_address + rules_size])[0]
+        rules = struct.unpack('<' + '{}s'.format(rules_size), self.data[rules_address:rules_address + rules_size])[0]
         # Convert to utf8 and split at null bytes
         rules = rules.decode('utf8').split('\x00')
         # Assemble tuples ( pattern, phonemes )
@@ -404,12 +404,12 @@ class PhoneDict:
         if self.sector_chars_left < 0:  # end of sector
             if self.sector_chars_left < -1:
                 return 0
-            offset = struct.unpack('l', self.data[self.cursor:self.cursor+self.LONGSIZE])[0]
+            offset = struct.unpack('<' + 'l', self.data[self.cursor:self.cursor+self.LONGSIZE])[0]
             if not offset:  # no continuation to next sector
                 return 0
             self.cursor = offset  # start of next sector
             self.sector_chars_left = self.SECTORSIZE - self.LONGSIZE - 1
-        ch = struct.unpack('s', self.data[self.cursor:self.cursor + 1])[0]
+        ch = struct.unpack('<' + 's', self.data[self.cursor:self.cursor + 1])[0]
         return ch
 
     def get_next_sector_short(self):
@@ -427,7 +427,7 @@ class PhoneDict:
             b = self.get_next_sector_char()
             bytes_ += b
             self.cursor += 1
-        return struct.unpack(unpack_code, bytes_)[0]
+        return struct.unpack('<' + unpack_code, bytes_)[0]
 
     def get_pronunciation(self, address):
         # Get the pronunciation
@@ -474,7 +474,7 @@ class PhoneDict:
                     b = self.get_next_sector_char()
                     offsetbytes += b
                     self.cursor += 1
-                offset = struct.unpack('l', offsetbytes)[0]
+                offset = struct.unpack('<' + 'l', offsetbytes)[0]
 
                 words.append((word.decode('utf8'), offset))
 
@@ -505,7 +505,7 @@ class PhoneDict:
                     b = self.get_next_sector_char()
                     offsetbytes += b
                     self.cursor += 1
-                offset = struct.unpack('l', offsetbytes)[0]
+                offset = struct.unpack('<' + 'l', offsetbytes)[0]
                 if word.decode('utf8') == target:
                     return offset
             b = self.get_next_sector_char()
