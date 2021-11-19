@@ -348,6 +348,14 @@ PhonemeNames = (
 )
 
 
+def div_zero(numerator, denominator, errval=0):
+    # Handle division by zero by returning an error value (default 0) 
+    try:
+        return numerator / denominator
+    except ZeroDivisionError:
+        return errval
+
+
 def match_count(matcher):
     """return the number of matches in a difflib.SequenceMatcher by summing the third element of matching blocks"""
     return sum([b[2] for b in matcher.get_matching_blocks()])
@@ -779,56 +787,54 @@ class ShowTellLine:
         stats['MBreak'] = len([p for p in zip(self.sentence, self.response) if p == (' ', ' ')])
 
         # Second-order fields
-        stats['%MWord'] = 200 * stats['MWord'] / (stats['SWord'] + stats['RWord'])
-        stats['%CWord'] = 100 * stats['MWord'] / stats['SWord']
-        stats['%MWordA'] = 200 * stats['MWordA'] / (stats['SWord'] + stats['RWord'])
-        stats['%CWordA'] = 100 * stats['MWordA'] / stats['SWord']
+        stats['%MWord'] = div_zero(200 * stats['MWord'], (stats['SWord'] + stats['RWord']))
+        stats['%CWord'] = div_zero(100 * stats['MWord'], stats['SWord'])
+        stats['%MWordA'] = div_zero(200 * stats['MWordA'], (stats['SWord'] + stats['RWord']))
+        stats['%CWordA'] = div_zero(100 * stats['MWordA'], stats['SWord'])
 
         stats['SPho'] = stats['SCon'] + stats['SVwl']
         stats['RPho'] = stats['RCon'] + stats['RVwl']
         stats['MPho'] = stats['MCon'] + stats['MVwl']
-        stats['%MPho'] = 200 * stats['MPho'] / (stats['SPho'] + stats['RPho'])
-        stats['%CPho'] = 100 * stats['MPho'] / stats['SPho']
-        stats['%MPhoA'] = 200 * stats['MPhoA'] / (stats['SPho'] + stats['RPho'])
-        stats['%CPhoA'] = 100 * stats['MPhoA'] / stats['SPho']
+        stats['%MPho'] = div_zero(200 * stats['MPho'], (stats['SPho'] + stats['RPho']))
+        stats['%CPho'] = div_zero(100 * stats['MPho'], stats['SPho'])
+        stats['%MPhoA'] = div_zero(200 * stats['MPhoA'], (stats['SPho'] + stats['RPho']))
+        stats['%CPhoA'] = div_zero(100 * stats['MPhoA'], stats['SPho'])
 
-        stats['%MVwl'] = 200 * stats['MVwl'] / (stats['SVwl'] + stats['RVwl'])
-        stats['%CVwl'] = 100 * stats['MVwl'] / stats['SVwl']
-        stats['%MVwlA'] = 200 * stats['MVwlA'] / (stats['SVwl'] + stats['RVwl'])
-        stats['%CVwlA'] = 100 * stats['MVwlA'] / stats['SVwl']
+        stats['%MVwl'] = div_zero(200 * stats['MVwl'], (stats['SVwl'] + stats['RVwl']))
+        stats['%CVwl'] = div_zero(100 * stats['MVwl'], stats['SVwl'])
+        stats['%MVwlA'] = div_zero(200 * stats['MVwlA'], (stats['SVwl'] + stats['RVwl']))
+        stats['%CVwlA'] = div_zero(100 * stats['MVwlA'], stats['SVwl'])
 
-        stats['%MCon'] = 200 * stats['MCon'] / (stats['SCon'] + stats['RCon'])
-        stats['%CCon'] = 100 * stats['MCon'] / stats['SCon']
-        stats['%MConA'] = 200 * stats['MConA'] / (stats['SCon'] + stats['RCon'])
-        stats['%CConA'] = 100 * stats['MConA'] / stats['SCon']
+        stats['%MCon'] = div_zero(200 * stats['MCon'], (stats['SCon'] + stats['RCon']))
+        stats['%CCon'] = div_zero(100 * stats['MCon'], stats['SCon'])
+        stats['%MConA'] = div_zero(200 * stats['MConA'], (stats['SCon'] + stats['RCon']))
+        stats['%CConA'] = div_zero(100 * stats['MConA'], stats['SCon'])
 
-        stats['%MInit'] = 200 * stats['MInit'] / (stats['SWord'] + stats['RWord'])
-        stats['%CInit'] = 100 * stats['MInit'] / stats['SWord']
-        stats['%MInitA'] = 200 * stats['MInitA'] / (stats['SWord'] + stats['RWord'])
-        stats['%CInitA'] = 100 * stats['MInitA'] / stats['SWord']
+        stats['%MInit'] = div_zero(200 * stats['MInit'], (stats['SWord'] + stats['RWord']))
+        stats['%CInit'] = div_zero(100 * stats['MInit'], stats['SWord'])
+        stats['%MInitA'] = div_zero(200 * stats['MInitA'], (stats['SWord'] + stats['RWord']))
+        stats['%CInitA'] = div_zero(100 * stats['MInitA'], stats['SWord'])
 
-        stats['%MFin'] = 200 * stats['MFin'] / (stats['SWord'] + stats['RWord'])
-        stats['%CFin'] = 100 * stats['MFin'] / stats['SWord']
-        stats['%MFinA'] = 200 * stats['MFinA'] / (stats['SWord'] + stats['RWord'])
-        stats['%CFinA'] = 100 * stats['MFinA'] / stats['SWord']
+        stats['%MFin'] = div_zero(200 * stats['MFin'], (stats['SWord'] + stats['RWord']))
+        stats['%CFin'] = div_zero(100 * stats['MFin'], stats['SWord'])
+        stats['%MFinA'] = div_zero(200 * stats['MFinA'], (stats['SWord'] + stats['RWord']))
+        stats['%CFinA'] = div_zero(100 * stats['MFinA'], stats['SWord'])
 
-        stats['%MIgraph'] = 200 * stats['MIgraph'] / (stats['SWord'] + stats['RWord'])
-        stats['%CIgraph'] = 100 * stats['MIgraph'] / stats['SWord']
-        stats['%MIgraphA'] = 200 * stats['MIgraphA'] / (stats['SWord'] + stats['RWord'])
-        stats['%CIgraphA'] = 100 * stats['MIgraphA'] / stats['SWord']
+        stats['%MIgraph'] = div_zero(200 * stats['MIgraph'], (stats['SWord'] + stats['RWord']))
+        stats['%CIgraph'] = div_zero(100 * stats['MIgraph'], stats['SWord'])
+        stats['%MIgraphA'] = div_zero(200 * stats['MIgraphA'], (stats['SWord'] + stats['RWord']))
+        stats['%CIgraphA'] = div_zero(100 * stats['MIgraphA'], stats['SWord'])
 
-        stats['%MFgraph'] = 200 * stats['MFgraph'] / (stats['SWord'] + stats['RWord'])
-        stats['%CFgraph'] = 100 * stats['MFgraph'] / stats['SWord']
-        stats['%MFgraphA'] = 200 * stats['MFgraphA'] / (stats['SWord'] + stats['RWord'])
-        stats['%CFgraphA'] = 100 * stats['MFgraphA'] / stats['SWord']
+        stats['%MFgraph'] = div_zero(200 * stats['MFgraph'], (stats['SWord'] + stats['RWord']))
+        stats['%CFgraph'] = div_zero(100 * stats['MFgraph'], stats['SWord'])
+        stats['%MFgraphA'] = div_zero(200 * stats['MFgraphA'], (stats['SWord'] + stats['RWord']))
+        stats['%CFgraphA'] = div_zero(100 * stats['MFgraphA'], stats['SWord'])
 
         stats['SBreak'] = stats['SWord'] - 1
         stats['RBreak'] = stats['RWord'] + stats['RUnintel'] - 1
         stats['RAWord'] = stats['RWord'] + stats['RUnintel']
-        try:
-            stats['%MBreak'] = 200 * stats['MBreak'] / (stats['SBreak'] + stats['RBreak'])
-        except ZeroDivisionError:
-            stats['%MBreak'] = 0
+
+        stats['%MBreak'] = div_zero(200 * stats['MBreak'], (stats['SBreak'] + stats['RBreak']))
 
         return stats
 
