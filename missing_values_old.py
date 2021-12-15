@@ -1,11 +1,28 @@
 # Reproduce functionality of Calculate Missing Values in ShowTell
+import struct
 import re
 from csv import DictReader, DictWriter
 from difflib import SequenceMatcher
 import argparse
 from tkinter import filedialog, Tk
 import os.path
-import pickle
+
+"""
+    The Dict.bin file is organized into SECTORSIZE byte sectors.  (SECTORSIZE == 32)
+     o  The "WordOffset" table above (4096 long integers)
+     o  Size of the file (4 bytes)
+     o  Size of the rules (4 bytes)
+     o  The rules for words not in dictionary
+     o  The pronunciations.  Each sector ends with a possible link
+        to a continuation sector.  Each possible pronunciation is followed
+        by a two-byte occurrence count.
+     o  The words in English text pointed to by WordOffset table.  Each sector
+        ends with a possible line to a continuation sector.  Each word is
+        followed by a link to the possible pronunciations
+     o  Expansion area for new words and new pronunciations.  The original
+        data always continued to the next successive sector.  Only later expansion
+        results in the use of non-contiguous sectors.
+"""
 
 # Phonetic Constants from Showandtell
 NUMCON = 24   # number of Y line consonants
@@ -344,19 +361,24 @@ def match_count(matcher):
     return sum([b[2] for b in matcher.get_matching_blocks()])
 
 
-class PicklePhoneDict:
+class PhoneDict:
     def __init__(self, dictionary_dir=None):
+        self.SECTORSIZE = 32  # bytes
+        self.LONGSIZE = 4
+        self.SHORTSIZE = 2
+        self.WORDOFFSETSIZE = 4096
+
         # if dictionary_dir is not specified, default to directory containing this script
         if not dictionary_dir:
             dictionary_dir = os.path.dirname(__file__)
-        dictionary_filename = os.path.join(dictionary_dir, 'dict.pickled')
+        dictionary_filename = os.path.join(dictionary_dir, 'Dict.bin')
+        dictfix_filename = os.path.join(dictionary_dir, 'DictFix.txt')
+
         with open(dictionary_filename, 'rb') as f:
-            self.data = pickle.load(f)
-        self.word_dict = self.data['word_dict']
-        self.rules = self.data['rules']
+            self.data = f.read()
 
         self.dictfix = {}
-        dictfix_filename = os.path.join(dictionary_dir, 'DictFix.txt')
+
         with open(dictfix_filename, 'r') as f:
             for line in f:
                 key, val = line.strip().split('\t')
@@ -364,20 +386,139 @@ class PicklePhoneDict:
                 val_ph = ''.join([self.get_ph(p) for p in val.split('-')])
                 self.dictfix[key.upper()] = val_ph
 
-    def get_ph(self, ch):
-        """ Convert from pseudo to internal phonetic representation
+        self.wordoffset = struct.unpack('<' + 'l' * self.WORDOFFSETSIZE, self.data[:self.LONGSIZE * self.WORDOFFSETSIZE])
+        self.rules = self.read_and_format_rules()
 
-        this is needed for statistics to be correctly computed for words in dictfix, and possibly if rules are used.
+        self.sector_chars_left = 0
+        self.cursor = 0
+
+    def read_and_format_rules(self):
+        # Rules are provided as pattern/phoneme pairs.
+        rules_size_address = self.LONGSIZE * (self.WORDOFFSETSIZE + 1)
+        rules_size = struct.unpack('<' + 'l', self.data[rules_size_address:rules_size_address + self.LONGSIZE])[0]
+        rules_address = rules_size_address + self.LONGSIZE
+        # Read rules as bytes
+        rules = struct.unpack('<' + '{}s'.format(rules_size), self.data[rules_address:rules_address + rules_size])[0]
+        # Convert to utf8 and split at null bytes
+        rules = rules.decode('utf8').split('\x00')
+        # Assemble tuples ( pattern, phonemes )
+        rules = list(zip(rules[::2], rules[1::2]))
+        return rules
+
+    def get_next_sector_char(self):
+        """ The dictionary is organized into sectors.  This function retrieves the next character in the current
+        sector, if any.  Follow links to continuation sectors if present. """
+        self.sector_chars_left -= 1
+        if self.sector_chars_left < 0:  # end of sector
+            if self.sector_chars_left < -1:
+                return 0
+            offset = struct.unpack('<' + 'l', self.data[self.cursor:self.cursor+self.LONGSIZE])[0]
+            if not offset:  # no continuation to next sector
+                return 0
+            self.cursor = offset  # start of next sector
+            self.sector_chars_left = self.SECTORSIZE - self.LONGSIZE - 1
+        ch = struct.unpack('<' + 's', self.data[self.cursor:self.cursor + 1])[0]
+        return ch
+
+    def get_next_sector_short(self):
+        # read the next SHORTSIZE bytes of the dictionary, interpreted as a short integer
+        return self.get_next_sector_bytes(self.SHORTSIZE, 'h')
+
+    def get_next_sector_long(self):
+        # read the next LONGSIZE bytes of the dictionary, interpreted as a long integer
+        return self.get_next_sector_bytes(self.LONGSIZE, 'l')
+
+    def get_next_sector_bytes(self, size, unpack_code):
+        # read the next SIZE bytes of the dictionary, interpreted as a struct.unpack(unpack_code)
+        bytes_ = b''
+        for i in range(size):
+            b = self.get_next_sector_char()
+            bytes_ += b
+            self.cursor += 1
+        return struct.unpack('<' + unpack_code, bytes_)[0]
+
+    def get_pronunciation(self, address):
+        # Get the pronunciation
+        pronounce = b''
+        self.cursor = address
+        self.sector_chars_left = self.SECTORSIZE - self.LONGSIZE
+        b = self.get_next_sector_char()
+        while b != b'\x00':
+            pronounce += b
+            self.cursor += 1
+            b = self.get_next_sector_char()
+
+        # Get the occurrence count for the pronunciation
+        self.cursor += 1  # skip the null byte and read the next thing...
+        occurrence_count = self.get_next_sector_short()
+        # print(occurrence_count)
+
+        # There could be additional sets of [pronunciation]\x00[occurrence count] but we probably just care about the
+        # first one here.
+        pronounce = pronounce.decode('utf8')
+        return pronounce, occurrence_count
+
+    def get_word_list(self, address):
+        # Find the list of words in the dictionary which have a common hash (which points to the same offset)
+        words = []
+
+        self.cursor = address
+        # Read a word
+        self.sector_chars_left = self.SECTORSIZE - self.LONGSIZE
+        b = self.get_next_sector_char()
+        while b:
+            word = b''
+            while b != b'\x00':
+                word += b
+                self.cursor += 1
+                b = self.get_next_sector_char()
+            if word:
+                # skip the null byte
+                self.cursor += 1
+
+                # get the offset for this word (link to pronunciation)
+                offsetbytes = b''
+                for i in range(self.LONGSIZE):
+                    b = self.get_next_sector_char()
+                    offsetbytes += b
+                    self.cursor += 1
+                offset = struct.unpack('<' + 'l', offsetbytes)[0]
+
+                words.append((word.decode('utf8'), offset))
+
+            b = self.get_next_sector_char()
+        return words
+
+    def get_pronounce_link(self, address, target):
+        """ Search the list of words in the dictionary which have a common hash.
+        Stop reading if the target word is found, and return just the offset for the pronunciation
         """
-        ixPhoneme = PhonemeNames.index(ch)
-        if ixPhoneme < MAXCON:
-            nKindIndex = TYPE_CONSONANT + ixPhoneme
-        else:
-            nKindIndex = TYPE_VOWEL + ixPhoneme - MAXCON
+        self.cursor = address
+        # Read a word
+        self.sector_chars_left = self.SECTORSIZE - self.LONGSIZE
+        b = self.get_next_sector_char()
+        while b:
+            word = b''
+            while b != b'\x00':
+                word += b
+                self.cursor += 1
+                b = self.get_next_sector_char()
+            if word:
+                # skip the null byte
+                self.cursor += 1
 
-        for i in range(32, 129):
-            if CharTypes[i] & (MASK_KIND + MASK_INDEX) == nKindIndex:
-                return chr(i)
+                # get the offset for this word (link to pronunciation)
+                offsetbytes = b''
+                for i in range(self.LONGSIZE):
+                    b = self.get_next_sector_char()
+                    offsetbytes += b
+                    self.cursor += 1
+                offset = struct.unpack('<' + 'l', offsetbytes)[0]
+                if word.decode('utf8') == target:
+                    return offset
+            b = self.get_next_sector_char()
+        # no match found
+        return 0
 
     def lookup_sentence(self, sentence):
         words = sentence.split(' ')
@@ -387,18 +528,19 @@ class PicklePhoneDict:
     def lookup_word(self, word):
 
         word = self.clean_word(word)
-        try:
+        if word in self.dictfix.keys():
             return self.dictfix[word]
-        except KeyError:
-            pass
 
-        try:
-            return self.word_dict[word]
-        except KeyError:
-            pass
-        # Word not in dictionary.  Use rules to derive a pronunciation
-        return self.apply_rules(word)
-
+        hashvalue = self.get_word_hash(word)
+        address = self.wordoffset[hashvalue]
+        pronounce_link = self.get_pronounce_link(address, word)
+        if pronounce_link:
+            pronunciation, occurrence_count = self.get_pronunciation(pronounce_link)
+        else:
+            # Word not in dictionary.  Use rules to derive a pronunciation
+            # print('{} not in dict'.format(word))
+            pronunciation = self.apply_rules(word)
+        return pronunciation
 
     def phonetic_display(self, pronunciation):
         """ Convert internal phonetic representation to display representation """
@@ -420,6 +562,21 @@ class PicklePhoneDict:
                     ixPhoneme += MAXCON
                 scode = PhonemeNames[ixPhoneme]
         return scode
+
+    def get_ph(self, ch):
+        """ Convert from pseudo to internal phonetic representation
+
+        this is needed for statistics to be correctly computed for words in dictfix, and possibly if rules are used.
+        """
+        ixPhoneme = PhonemeNames.index(ch)
+        if ixPhoneme < MAXCON:
+            nKindIndex = TYPE_CONSONANT + ixPhoneme
+        else:
+            nKindIndex = TYPE_VOWEL + ixPhoneme - MAXCON
+
+        for i in range(32, 129):
+            if CharTypes[i] & (MASK_KIND + MASK_INDEX) == nKindIndex:
+                return chr(i)
 
     def apply_rules(self, word):
         """ Use rules to derive pronunciation of word not in dictionary """
@@ -483,7 +640,14 @@ class PicklePhoneDict:
         s = re.sub(r"'(?!LL)", '', s)  # strip out apostrophes not followed by LL (as in we'll, she'll, etc.)
         return s
 
-
+    @staticmethod
+    def get_word_hash(word):
+        # Compute hash to lookup offset in WordOffset table
+        hashvalue = 0
+        for c in word:
+            hashvalue = hashvalue * 3 + ord(c)
+        hashvalue = hashvalue & 0o7777
+        return hashvalue
 
 
 class ShowTellLine:
@@ -743,7 +907,7 @@ def compute_missing_values(args):
         return
 
     # Load phonetic dictionary
-    pd = PicklePhoneDict(dictionary_dir=args.dictionary_dir)
+    pd = PhoneDict(dictionary_dir=args.dictionary_dir)
 
     # Extra fields for missing values
     extra_fields = [
@@ -806,7 +970,7 @@ if __name__ == '__main__':
         dest='dictionary_dir',
         action='store',
         default='',
-        help='Directory containing dict.pickle and DictFix.txt phonetic dictionary files.  Defaults to script directory.'
+        help='Directory containing Dict.bin and DictFix.txt phonetic dictionary files.  Defaults to script directory.'
     )
 
     args = parser.parse_args()
