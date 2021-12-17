@@ -529,6 +529,8 @@ def main(directory="", exclude="ask"):
 
         # Find location of columns based on header
         col = {}
+        prev_timestamp = None
+        prev_sentence = None
 
         with open(rfname, 'w') as rf:
             #with open(fname, 'r') as f:
@@ -542,6 +544,17 @@ def main(directory="", exclude="ask"):
                                 # Probably forgot to compute missing values
                                 missing_values.append(os.path.basename(prefix))
                                 continue
+
+                            # Discard lines which repeat a timestamp from a previous line.
+                            if 'Timestamp' in col.keys():
+                                if lineparts[col['Timestamp']] == prev_timestamp:
+                                    if lineparts[col['Sentence']] == prev_sentence:
+                                        continue
+                                    else:
+                                        print(f'Repeated lines have the same timestamp but different sentences.  Timestamp {prev_timestamp} in {sourcefile}')
+                                else:
+                                    prev_timestamp = lineparts[col['Timestamp']]
+                                    prev_sentence = lineparts[col['Sentence']]
 
                             # Any SENTENCE where speaker said only ONE word (SWord == 1) should be ignored
                             try:
