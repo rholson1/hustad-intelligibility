@@ -766,7 +766,7 @@ def compute_missing_values(args):
         with open(input_filename) as csvfile, open(output_filename, 'w') as output_file:
             reader = DictReader(csvfile, dialect='excel-tab')
             writer = DictWriter(output_file, fieldnames=reader.fieldnames + extra_fields, dialect='excel-tab',
-                                lineterminator='\n', extrasaction='ignore')
+                                lineterminator='\n', extrasaction='ignore', restval='-1')
             writer.writeheader()
             for line in reader:
                 newline = process_line(pd, line)
