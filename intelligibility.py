@@ -547,7 +547,7 @@ def main(directory="", exclude="ask"):
 
                             # Discard lines which repeat a timestamp from a previous line.
                             if 'Timestamp' in col.keys():
-                                if lineparts[col['Timestamp']] == prev_timestamp:
+                                if lineparts[col['Timestamp']] == prev_timestamp and float(prev_timestamp) > 0:
                                     if lineparts[col['Sentence']] == prev_sentence:
                                         continue
                                     else:
