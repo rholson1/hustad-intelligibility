@@ -852,13 +852,16 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
                     exemplars_total[P] += exemplar_count[P]
 
                 # interleave phase data
-                linedata = (
-                        [basename, L] +
-                        [s, PSentence[exemplars_all][0]] +
-                        [exemplar_count[P] for P in Phases] +
-                        list(chain(*zip(*[bd[P] for P in Phases])))
-                )
-                f.write('\t'.join([str(s) if str(s) != 'nan' else '' for s in linedata]) + '\n')
+                try:
+                    linedata = (
+                            [basename, L] +
+                            [s, PSentence[exemplars_all][0]] +
+                            [exemplar_count[P] for P in Phases] +
+                            list(chain(*zip(*[bd[P] for P in Phases])))
+                    )
+                    f.write('\t'.join([str(s) if str(s) != 'nan' else '' for s in linedata]) + '\n')
+                except IndexError:
+                    print(f'IndexError when looking for sentence {s} for listener {L}')
 
                 # Write data to file
                 # f.write('\t'.join([basename, L, str(exemplars.sum()), s, PSentence[exemplars][0]]))
