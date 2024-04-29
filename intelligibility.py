@@ -109,7 +109,7 @@ def group_filenames(fnames):
 
     pattern = re.compile('(Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)-')
     f_list = [parse_intel_control_filename(f) for f in fnames if pattern.search(f)]
-    prefixes = set([f['prefix'] for f in f_list])
+    prefixes = sorted(set([f['prefix'] for f in f_list]))
     grouped_list = [{'prefix': p,
                      'filenames': [f['filename'] for f in f_list if f['prefix'] == p]} for p in prefixes]
     return grouped_list
@@ -142,7 +142,7 @@ def merge_iwpm_files(path):
     fname_word = os.path.join(path, 'combined_word_IWPM.txt')
     fname_all = os.path.join(path, 'combined_all_stimuli.txt')
 
-    all_files = os.listdir(path)
+    all_files = sorted(os.listdir(path))
     sentence_files = [os.path.join(path, f) for f in all_files if 'sentenceIWPMsummary.txt' in f]
     word_files = [os.path.join(path, f) for f in all_files if 'wordIWPMsummary.txt' in f]
 
@@ -376,7 +376,7 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
             # Data validation
             with open(filename_validation, 'a') as f_valid:
                 f_valid.write(f'Phase: {P}\n')
-                f_valid.write('\t'.join(np.hstack((['Message'], pheader))))  # write header for reference
+                f_valid.write('\t'.join(np.hstack((['Message'], pheader))) + '\n')  # write header for reference
 
                 # is there a way to validate naming convention?
 
@@ -384,14 +384,14 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
                 for line in pdata[P]:
                     if len(line) > totwords_col:  # If the TotalWords column exists...
                         if float_or_default(line[sword_col]) != float_or_default(line[totwords_col]):
-                            f_valid.write('\t'.join(np.hstack((['Avg Sword != TotalWords'], line))))
+                            f_valid.write('\t'.join(np.hstack((['Avg Sword != TotalWords'], line))) + '\n')
 
                 # Check: sentence has wpm data (use presence of totwords to check)
                 for line in pdata[P]:
                     if line[0] != 'Child':
                         if float_or_default(line[sword_col]) > 1 and line[sentence_col].upper() != 'A DRESS':  # i.e., a sentence
                             if len(line) < totwords_col:  # missing wpm data
-                                f_valid.write('\t'.join(np.hstack((['Missing wpm data'], line))))
+                                f_valid.write('\t'.join(np.hstack((['Missing wpm data'], line))) + '\n')
 
                 # Warn if fewer than four sentences of a given length
                 for k, g in groupby(pdata[P], cvs_key):
@@ -403,7 +403,7 @@ def combined_iwpm_to_intelligibility(path, ask=True, exclude=True):
                 for line in pdata[P]:
                     if line[0] != 'Child':
                         if float_or_default(line[sword_col]) > 7:
-                            f_valid.write('\t'.join(np.hstack((['More than 7 words in sentence'], line))))
+                            f_valid.write('\t'.join(np.hstack((['More than 7 words in sentence'], line))) + '\n')
 
             # process data by group and store
             for k, g in groupby(pdata[P], cvs_key):
