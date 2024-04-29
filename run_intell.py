@@ -34,12 +34,15 @@ def main(directory="", exclude="ask"):
 
     pattern = re.compile(r'(Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)-\d+\.')
     fnames = [os.path.join(working_dir, f) for f in os.listdir(working_dir) if pattern.search(f)]
-    files = {fname: File(open(fname), name=fname) for fname in fnames}
+    #files = {fname: File(open(fname), name=fname) for fname in fnames}
+    files = [File(open(fname), name=fname) for fname in fnames]
+
 
     # for perceptual learning
     pl_pattern = re.compile(r'(Control[_ ]File|Research_Responses|Parent_Responses)!')
     articulation_fnames = [os.path.join(working_dir, f) for f in os.listdir(working_dir) if pl_pattern.search(f)]
-    articulation_files = {fname: File(open(fname), name=fname) for fname in articulation_fnames}
+    #articulation_files = {fname: File(open(fname), name=fname) for fname in articulation_fnames}
+    articulation_files = [File(open(fname), name=fname) for fname in articulation_fnames]
 
     # Other files
     all_files = os.listdir(working_dir)
@@ -51,11 +54,13 @@ def main(directory="", exclude="ask"):
 
     pattern = re.compile('syllsPerSecond', flags=re.IGNORECASE)  # look for filenames containing syllsPerSecond
     sylls_filenames = [os.path.join(working_dir, f) for f in all_files if pattern.search(f)]
-    sylls_files = {fname: File(open(fname), name=fname) for fname in sylls_filenames}
+    #sylls_files = {fname: File(open(fname), name=fname) for fname in sylls_filenames}
+    sylls_files = [File(open(fname), name=fname) for fname in sylls_filenames]
 
     pattern = re.compile('articRate', flags=re.IGNORECASE)  # look for filenames containing articRate
     artic_filenames = [os.path.join(working_dir, f) for f in all_files if pattern.search(f)]
-    artic_files = {fname: File(open(fname), name=fname) for fname in artic_filenames}
+    #artic_files = {fname: File(open(fname), name=fname) for fname in artic_filenames}
+    artic_files = [File(open(fname), name=fname) for fname in artic_filenames]
 
     output = compute_intelligibility(files, articulation_files, wpm_files, sylls_files, artic_files, exclude)
 

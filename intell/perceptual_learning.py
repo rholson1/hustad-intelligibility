@@ -38,7 +38,7 @@ def read_articulation(articulation_files):
 
     art = {}
     # for fname in fnames:
-    for fname, file in articulation_files.items():
+    for file in articulation_files:
         articulation = []
         stimulus = []
         for line in file:
@@ -50,7 +50,7 @@ def read_articulation(articulation_files):
             except IndexError:
                 continue
 
-        art[file_to_key(fname)] = {'articulation': articulation, 'stimulus': stimulus}
+        art[file_to_key(file.name)] = {'articulation': articulation, 'stimulus': stimulus}
     return art
 
 

@@ -24,7 +24,8 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
 
 
     # Regroup filenames so that files with matching initials and visit number are concatenated and processed together.
-    file_sets = group_filenames(files.keys())
+    file_names = [f.name for f in files]
+    file_sets = group_filenames(file_names)
 
     for file_set in file_sets:
         prefix = file_set['prefix']  # Path and file prefix used for output files
@@ -52,7 +53,8 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
 
         rf_stream = io.StringIO()  # Reliability file
 
-        file_set_files = [files[f] for f in file_set['filenames']]
+        #file_set_files = [files[f] for f in file_set['filenames']]
+        file_set_files = [f for f in files if f.name in file_set['filenames']]
 
         for line, sourcefile in readfiles(file_set_files):
             fileparts = parse_intel_control_filename(sourcefile)
