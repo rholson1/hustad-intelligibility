@@ -1,4 +1,4 @@
-import os
+import ntpath
 import io
 import re
 from .utils import file_to_key, is_sentence_file, parse_intel_control_filename
@@ -105,11 +105,11 @@ def perceptual_learning(combined_f, header, sentence, filenames, correct, repeat
 
         # get articulation for wtocs (all wtocs for this source)
         art = articulation.get(file_to_key(source), None)
-        art_stim = [os.path.basename(s) for s in art['stimulus']] if art and art['stimulus'] else None
+        art_stim = [ntpath.basename(s) for s in art['stimulus']] if art and art['stimulus'] else None
         art = np.array([float(a) for a in art['articulation']]) if art and art['articulation'] else None
 
         # Want to exclude articulation values from training items (in articulation but not in listener response files)
-        lrf_filenames = [os.path.basename(s) for s in filenames[listener_all_wtocs]]
+        lrf_filenames = [ntpath.basename(s) for s in filenames[listener_all_wtocs]]
         art_stim_filter = np.array([a in lrf_filenames for a in art_stim]) if art_stim else None
         art = art[art_stim_filter] if art_stim_filter is not None else None
 

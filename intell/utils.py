@@ -1,5 +1,5 @@
 import re
-import os
+import ntpath
 import difflib
 
 
@@ -30,7 +30,7 @@ def parse_intel_control_filename(fname):
     """ Intelligibility control filenames are formatted as:
     [initials]v[visit#] Control File-[datetime].txt
     """
-    path, basename = os.path.split(fname)
+    path, basename = ntpath.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
         match = re.match('(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)-(.*)\.txt', basename)
@@ -39,7 +39,7 @@ def parse_intel_control_filename(fname):
         cf_number = match.group(3)
     except:
         raise Exception('Unexpected format for control file name: {}'.format(basename))
-    return {'prefix': os.path.join(path, base_prefix), 'filename': fname, 'cf_number': cf_number, 'visit': base_prefix,
+    return {'prefix': ntpath.join(path, base_prefix), 'filename': fname, 'cf_number': cf_number, 'visit': base_prefix,
             'listener_type': listener_type}
 
 
@@ -47,7 +47,7 @@ def file_to_key(fname):
     """ Convert a filename to a key based on visit and control file number
     Works both for listener response files and for question files (- and !)
     """
-    path, basename = os.path.split(fname)
+    path, basename = ntpath.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
         match = re.match('(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)[-!](.*)\.txt', basename)
@@ -79,7 +79,7 @@ def group_filenames(fnames):
 
 def is_sentence_file(filename):
     """ Check if a file is a sentence file or a word file by looking for presence of 's' or 'w' in filename """
-    match = re.search(r'(w|s\d+)t\d+[a-z]?(_.......)?\.wav', os.path.basename(filename).lower())
+    match = re.search(r'(w|s\d+)t\d+[a-z]?(_.......)?\.wav', ntpath.basename(filename).lower())
     if match:
         return match.group(1)[0] == 's'  # True for a sentence file
     else:

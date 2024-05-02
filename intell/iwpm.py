@@ -1,4 +1,4 @@
-import os
+import ntpath
 import re
 import io
 import numpy as np
@@ -101,7 +101,7 @@ def merge_iwpm_files(sentence_files, word_files, wpm_files, sylls_files, artic_f
         if lineparts[sfcol] == 'SentenceFile':
             key = 'TOCSnumb'
         else:
-            key = os.path.splitext(os.path.basename(lineparts[sfcol]))[0]  # Converts AGv07TOCSS\AGv07sT01.wav to AGv07sT01
+            key = ntpath.splitext(ntpath.basename(lineparts[sfcol]))[0]  # Converts AGv07TOCSS\AGv07sT01.wav to AGv07sT01
             key = clean_wpm_key(key)
 
         first_part = wpm_dict.get(key, '') or sylls_dict.get(key, '') or artic_dict.get(key, '')

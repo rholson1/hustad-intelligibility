@@ -1,5 +1,5 @@
 import io
-import os
+import ntpath  # use ntpath instead of os.path so windows paths are handled correctly when running on linux
 import numpy as np
 
 from .perceptual_learning import initialize_perceptual_learning, read_articulation, perceptual_learning
@@ -64,7 +64,7 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
                 if lineparts[0].isnumeric():
                     if 'SWord' not in col.keys():
                         # Probably forgot to compute missing values
-                        missing_values.append(os.path.basename(prefix))
+                        missing_values.append(ntpath.basename(prefix))
                         continue
 
                     # Discard lines which repeat a timestamp from a previous line.
@@ -99,7 +99,7 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
                     Sentence.append(lineparts[col['Sentence']].capitalize())
                     PSentence.append(lineparts[col['Phonetic Sentence']])
 
-                    SentenceFile.append(os.path.basename(lineparts[col['File']]))
+                    SentenceFile.append(ntpath.basename(lineparts[col['File']]))
                     SentenceFileSentence[SentenceFile[-1]] = Sentence[-1]
 
                     # store data for word-level analysis
@@ -131,7 +131,7 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
                     col = {a: i for i, a in enumerate(lineparts)}  # store the column numbers
                     if 'SWord' not in col.keys():
                         # Probably forgot to compute missing values
-                        missing_values.append(os.path.basename(prefix))
+                        missing_values.append(ntpath.basename(prefix))
                         continue
                     # has_demographic_info = lineparts[3] == 'Age'
                     # offset = 4 if has_demographic_info else 0

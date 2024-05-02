@@ -1,5 +1,5 @@
 import numpy as np
-import os
+import ntpath
 import io
 from collections import defaultdict
 from itertools import chain
@@ -14,7 +14,7 @@ def word_count_analysis(prefix, header, SWord, Listeners, WorkingSet, Listener, 
     phase_header = np.hstack((('Phase', ''), np.tile(Phases, phase_col_count)))
     summary_phase_header = np.hstack((('Phase', ''), np.tile(Phases, phase_col_count + 1)))
 
-    basename = os.path.basename(prefix)
+    basename = ntpath.basename(prefix)
 
     sf = io.StringIO()
     f = io.StringIO()
@@ -134,7 +134,7 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
         ['SentenceFile']
     ))
 
-    basename = os.path.basename(prefix)
+    basename = ntpath.basename(prefix)
 
     ssf = io.StringIO()
     swf = io.StringIO()
@@ -219,7 +219,7 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
             except IndexError:
                 print(Listeners)
                 print('Length of blockdata elements: {}'.format([len(zz) for zz in blockdata[P]]))
-                print('Problem computing statistics for sentence "{}" in {}'.format(s, os.path.basename(prefix)))
+                print('Problem computing statistics for sentence "{}" in {}'.format(s, ntpath.basename(prefix)))
 
             # Compute Standard Deviation of CWordA
             bd[P][CWordA_SD_col - 3] = np.std(blockdata[P][:, CWordA_SD_col - 4])
@@ -295,7 +295,7 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
 
 
 def word_analysis(prefix, word_dict, Listeners):
-    basename = os.path.basename(prefix)
+    basename = ntpath.basename(prefix)
     word_fname = prefix + '_intellxword.txt'
     # Determine max line length
     max_length = 7
