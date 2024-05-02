@@ -145,7 +145,7 @@ def compute_intelligibility(files, articulation_files, wpm_files, sylls_files, a
                 rf_stream.write(line)
 
         rf_stream.seek(0)
-        rf_name = prefix + '_reliability.txt'
+        rf_name = ntpath.basename(prefix) + '_reliability.txt'
         #print(os.path.basename(prefix), flush=True)
 
         output_files.append(File(rf_stream, name=rf_name))

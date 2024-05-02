@@ -117,7 +117,8 @@ def perceptual_learning(combined_f, header, sentence, filenames, correct, repeat
         art_value = art[art_filter] if art is not None else None
 
         parts = parse_intel_control_filename(source)
-        listener_filename = parts['prefix'] + '_perceptual_learning-' + parts['cf_number'] + '.txt'
+        basename = ntpath.basename(parts['prefix'])
+        listener_filename = basename + '_perceptual_learning-' + parts['cf_number'] + '.txt'
 
         wtocs_first = all_wtocs[listener_set][0]
         wtocs_count = sum(single_word_set)

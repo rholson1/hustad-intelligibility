@@ -90,8 +90,8 @@ def word_count_analysis(prefix, header, SWord, Listeners, WorkingSet, Listener, 
 
     sf.seek(0)
     f.seek(0)
-    sfname_wc = prefix + '_intellxlistener_summmary.txt'
-    ofname_wc = prefix + '_intellxlistenerxlength.txt'
+    sfname_wc = basename + '_intellxlistener_summmary.txt'
+    ofname_wc = basename + '_intellxlistenerxlength.txt'
     return [File(f, ofname_wc), File(sf, sfname_wc)]
 
 
@@ -276,10 +276,10 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
             ssf.write('\t'.join(summary_partition_list) + '\n')
 
 
-    ofname_sentence = prefix + '_intellxutterance.txt'
-    sfname_sentence = prefix + '_intellxutterance_summary.txt'
-    sfname_sentence_sentence = prefix + '_intellxutterance_sentenceIWPMsummary.txt'
-    sfname_sentence_word = prefix + '_intellxutterance_wordIWPMsummary.txt'
+    ofname_sentence = basename + '_intellxutterance.txt'
+    sfname_sentence = basename + '_intellxutterance_summary.txt'
+    sfname_sentence_sentence = basename + '_intellxutterance_sentenceIWPMsummary.txt'
+    sfname_sentence_word = basename + '_intellxutterance_wordIWPMsummary.txt'
 
     ssf.seek(0)
     swf.seek(0)
@@ -296,7 +296,7 @@ def sentence_analysis(prefix, header, Sentences, SentenceFiles, SentenceFileSent
 
 def word_analysis(prefix, word_dict, Listeners):
     basename = ntpath.basename(prefix)
-    word_fname = prefix + '_intellxword.txt'
+    word_fname = basename + '_intellxword.txt'
     # Determine max line length
     max_length = 7
     for k in word_dict:
