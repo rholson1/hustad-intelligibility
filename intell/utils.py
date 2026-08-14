@@ -33,7 +33,7 @@ def parse_intel_control_filename(fname):
     path, basename = ntpath.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
-        match = re.match('(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)-(.*)\.txt', basename)
+        match = re.match(r'(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)-(.*)\.txt', basename)
         base_prefix = match.group(1)
         listener_type = match.group(2)
         cf_number = match.group(3)
@@ -50,7 +50,7 @@ def file_to_key(fname):
     path, basename = ntpath.split(fname)
     try:
         # base_prefix = re.match('(.+)[_ ]Control[_ ]File-', basename).group(1)
-        match = re.match('(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)[-!](.*)\.txt', basename)
+        match = re.match(r'(.+)[_ ](Control[_ ]File|Research_Responses|Parent_Responses|Training_Responses)[-!](.*)\.txt', basename)
         base_prefix = match.group(1)
         cf_number = match.group(3)
     except:
@@ -58,7 +58,7 @@ def file_to_key(fname):
 
     # Check to see if base_prefix ends with a visit number: vNN
     # If not, assume visit 1 and append v01
-    if re.search('v\d\d$', base_prefix) is None:
+    if re.search(r'v\d\d$', base_prefix) is None:
         base_prefix = base_prefix + 'v01'
 
     return '{}-{}'.format(base_prefix, cf_number)
